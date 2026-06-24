@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { redact, redactDeep, totalRedactions } from '../src/redaction';
+import { redact, redactDeep, totalRedactions, compileDetectors } from '../src/redaction';
 
 /** A realistic-but-fake high-entropy secret (mixed case + digits, 40 chars). */
 const HIGH_ENTROPY = 'Zk8sLp2QwErTyUiOpAsDfGhJkL9mN3bV5cX7zQ1w';
@@ -167,6 +167,27 @@ describe('redaction - behavior', () => {
   it('returns an empty report for clean input', () => {
     const r = redact('nothing sensitive here at all');
     expect(r.redactions).toEqual({});
+  });
+});
+
+describe('redaction - custom patterns and disabling', () => {
+  it('redacts a custom org pattern', () => {
+    const detectors = compileDetectors([{ kind: 'acme_token', pattern: 'ACME-[0-9]{6}' }]);
+    const r = redact('id ACME-123456 done', detectors);
+    expect(r.text).not.toContain('ACME-123456');
+    expect(r.redactions.acme_token).toBe(1);
+  });
+
+  it('can disable a built-in detector kind', () => {
+    const detectors = compileDetectors([], ['email']);
+    const r = redact('write to a@b.com', detectors);
+    expect(r.text).toContain('a@b.com');
+    expect(r.redactions.email ?? 0).toBe(0);
+  });
+
+  it('skips an invalid custom regex without throwing', () => {
+    const detectors = compileDetectors([{ kind: 'bad', pattern: '(' }]);
+    expect(() => redact('anything', detectors)).not.toThrow();
   });
 });
 

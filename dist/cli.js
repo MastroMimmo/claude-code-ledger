@@ -968,8 +968,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path8 = require("node:path");
-    var fs8 = require("node:fs");
+    var path9 = require("node:path");
+    var fs9 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1901,11 +1901,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path8.resolve(baseDir, baseName);
-          if (fs8.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path8.extname(baseName))) return void 0;
+          const localBin = path9.resolve(baseDir, baseName);
+          if (fs9.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path9.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs8.existsSync(`${localBin}${ext}`)
+            (ext) => fs9.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1917,21 +1917,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs8.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs9.realpathSync(this._scriptPath);
           } catch (err) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path8.resolve(
-            path8.dirname(resolvedScriptPath),
+          executableDir = path9.resolve(
+            path9.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path8.basename(
+            const legacyName = path9.basename(
               this._scriptPath,
-              path8.extname(this._scriptPath)
+              path9.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1942,7 +1942,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path8.extname(executableFile));
+        launchWithNode = sourceExt.includes(path9.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2782,7 +2782,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path8.basename(filename, path8.extname(filename));
+        this._name = path9.basename(filename, path9.extname(filename));
         return this;
       }
       /**
@@ -2796,9 +2796,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path9) {
-        if (path9 === void 0) return this._executableDir;
-        this._executableDir = path9;
+      executableDir(path10) {
+        if (path10 === void 0) return this._executableDir;
+        this._executableDir = path10;
         return this;
       }
       /**
@@ -3082,8 +3082,8 @@ function readVersion() {
 var VERSION = readVersion();
 
 // src/commands/init.ts
-var fs3 = __toESM(require("node:fs"));
-var path3 = __toESM(require("node:path"));
+var fs4 = __toESM(require("node:fs"));
+var path4 = __toESM(require("node:path"));
 
 // src/config.ts
 var fs2 = __toESM(require("node:fs"));
@@ -3116,14 +3116,50 @@ function isInitialized(start = process.cwd()) {
   return findLedgerDir(start) !== null;
 }
 
+// src/settings.ts
+var fs3 = __toESM(require("node:fs"));
+var path3 = __toESM(require("node:path"));
+var DEFAULT_CONFIG = {
+  autoPack: false,
+  redaction: { customPatterns: [], disabledKinds: [] }
+};
+function configPath(cwd) {
+  return path3.join(ledgerDir(cwd), "config.json");
+}
+function loadConfig(cwd) {
+  const config = {
+    autoPack: DEFAULT_CONFIG.autoPack,
+    redaction: { customPatterns: [], disabledKinds: [] }
+  };
+  try {
+    const p = configPath(cwd);
+    if (fs3.existsSync(p)) {
+      const raw = JSON.parse(fs3.readFileSync(p, "utf8"));
+      if (typeof raw.autoPack === "boolean") config.autoPack = raw.autoPack;
+      const r = raw.redaction;
+      if (r && typeof r === "object") {
+        if (Array.isArray(r.customPatterns)) config.redaction.customPatterns = r.customPatterns;
+        if (Array.isArray(r.disabledKinds)) config.redaction.disabledKinds = r.disabledKinds;
+      }
+    }
+  } catch {
+  }
+  if (process.env.LEDGER_AUTO_PACK === "1") config.autoPack = true;
+  if (process.env.LEDGER_AUTO_PACK === "0") config.autoPack = false;
+  return config;
+}
+function serializeDefaultConfig() {
+  return JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n";
+}
+
 // src/commands/init.ts
 function ensureLedgerIgnored(cwd) {
-  const gitignore = path3.join(cwd, ".gitignore");
-  const existing = fs3.existsSync(gitignore) ? fs3.readFileSync(gitignore, "utf8") : "";
+  const gitignore = path4.join(cwd, ".gitignore");
+  const existing = fs4.existsSync(gitignore) ? fs4.readFileSync(gitignore, "utf8") : "";
   const alreadyIgnored = existing.split(/\r?\n/).some((line) => line.trim() === ".ledger" || line.trim() === ".ledger/");
   if (alreadyIgnored) return false;
   const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
-  fs3.appendFileSync(gitignore, `${prefix}# Claude Code Ledger local capture data
+  fs4.appendFileSync(gitignore, `${prefix}# Claude Code Ledger local capture data
 .ledger/
 `);
   return true;
@@ -3135,14 +3171,18 @@ function registerInit(program2) {
       console.log(`Ledger already initialized at ${existing}`);
       return;
     }
-    const dir = path3.join(process.cwd(), LEDGER_DIR_NAME);
-    fs3.mkdirSync(path3.join(dir, "packs"), { recursive: true });
-    const metaPath = path3.join(dir, "meta.json");
-    if (!fs3.existsSync(metaPath) || opts.force) {
-      fs3.writeFileSync(
+    const dir = path4.join(process.cwd(), LEDGER_DIR_NAME);
+    fs4.mkdirSync(path4.join(dir, "packs"), { recursive: true });
+    const metaPath = path4.join(dir, "meta.json");
+    if (!fs4.existsSync(metaPath) || opts.force) {
+      fs4.writeFileSync(
         metaPath,
         JSON.stringify({ schema: 1, createdAt: (/* @__PURE__ */ new Date()).toISOString() }, null, 2) + "\n"
       );
+    }
+    const configFile = path4.join(dir, "config.json");
+    if (!fs4.existsSync(configFile)) {
+      fs4.writeFileSync(configFile, serializeDefaultConfig());
     }
     console.log(`Initialized Ledger store at ${dir}`);
     if (opts.gitignore !== false) {
@@ -3161,8 +3201,8 @@ function registerInit(program2) {
 // src/store/store.ts
 var import_warnings = __toESM(require_warnings());
 var import_node_module = require("node:module");
-var fs4 = __toESM(require("node:fs"));
-var path4 = __toESM(require("node:path"));
+var fs5 = __toESM(require("node:fs"));
+var path5 = __toESM(require("node:path"));
 
 // src/store/schema.ts
 var SCHEMA_VERSION = 1;
@@ -3199,13 +3239,13 @@ CREATE TABLE IF NOT EXISTS schema_version (
 
 // src/store/store.ts
 var nodeRequire = (0, import_node_module.createRequire)(
-  typeof __filename !== "undefined" ? __filename : path4.join(process.cwd(), "index.js")
+  typeof __filename !== "undefined" ? __filename : path5.join(process.cwd(), "index.js")
 );
 var { DatabaseSync } = nodeRequire("node:sqlite");
 var Store = class {
   db;
   constructor(file) {
-    fs4.mkdirSync(path4.dirname(file), { recursive: true });
+    fs5.mkdirSync(path5.dirname(file), { recursive: true });
     this.db = new DatabaseSync(file);
     this.db.exec("PRAGMA journal_mode = WAL;");
     this.db.exec("PRAGMA foreign_keys = ON;");
@@ -3410,8 +3450,8 @@ function registerShow(program2) {
 }
 
 // src/pack/pack.ts
-var fs5 = __toESM(require("node:fs"));
-var path5 = __toESM(require("node:path"));
+var fs6 = __toESM(require("node:fs"));
+var path6 = __toESM(require("node:path"));
 var TODO_RE = /\b(TODO|FIXME|HACK|XXX|next step|follow[- ]?up|open question)\b/i;
 function defaultTitle(sessions) {
   if (sessions.length === 1) return `Context pack - session ${sessions[0].id}`;
@@ -3550,18 +3590,18 @@ function slugify(s) {
   return s.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "pack";
 }
 function writePack(pack, outDir) {
-  fs5.mkdirSync(outDir, { recursive: true });
+  fs6.mkdirSync(outDir, { recursive: true });
   const slug = slugify(pack.sessions[0]?.id ?? "pack");
   const stamp = pack.createdAt.replace(/[:.]/g, "-");
   const base = `pack-${slug}-${stamp}`;
-  const jsonPath = path5.join(outDir, `${base}.json`);
-  const mdPath = path5.join(outDir, `${base}.md`);
-  fs5.writeFileSync(jsonPath, JSON.stringify(pack, null, 2) + "\n");
-  fs5.writeFileSync(mdPath, renderMarkdown(pack));
+  const jsonPath = path6.join(outDir, `${base}.json`);
+  const mdPath = path6.join(outDir, `${base}.md`);
+  fs6.writeFileSync(jsonPath, JSON.stringify(pack, null, 2) + "\n");
+  fs6.writeFileSync(mdPath, renderMarkdown(pack));
   return { jsonPath, mdPath };
 }
 function importPack(store, jsonPath) {
-  const pack = JSON.parse(fs5.readFileSync(jsonPath, "utf8"));
+  const pack = JSON.parse(fs6.readFileSync(jsonPath, "utf8"));
   if (pack.version !== 1) throw new Error(`Unsupported pack version: ${String(pack.version)}`);
   let sessions = 0;
   for (const s of pack.sessions) {
@@ -3647,9 +3687,9 @@ function registerImport(program2) {
 // src/replay/replay.ts
 var import_node_child_process = require("node:child_process");
 var import_node_crypto = require("node:crypto");
-var fs6 = __toESM(require("node:fs"));
+var fs7 = __toESM(require("node:fs"));
 var os = __toESM(require("node:os"));
-var path6 = __toESM(require("node:path"));
+var path7 = __toESM(require("node:path"));
 var COPY_EXCLUDES = /* @__PURE__ */ new Set(["node_modules", ".git", ".ledger", "dist", "coverage"]);
 var LOCKFILES = [
   "package-lock.json",
@@ -3677,9 +3717,9 @@ function extractCommands(events) {
 }
 function hashLockfile(dir) {
   for (const name of LOCKFILES) {
-    const p = path6.join(dir, name);
-    if (fs6.existsSync(p)) {
-      const h = (0, import_node_crypto.createHash)("sha256").update(fs6.readFileSync(p)).digest("hex");
+    const p = path7.join(dir, name);
+    if (fs7.existsSync(p)) {
+      const h = (0, import_node_crypto.createHash)("sha256").update(fs7.readFileSync(p)).digest("hex");
       return `${name}:${h.slice(0, 12)}`;
     }
   }
@@ -3692,14 +3732,14 @@ function buildFingerprint(session, commands, srcDir) {
     arch: process.arch,
     gitBranch: session.gitBranch,
     gitCommit: session.gitCommit,
-    depsHash: srcDir && fs6.existsSync(srcDir) ? hashLockfile(srcDir) : null,
+    depsHash: srcDir && fs7.existsSync(srcDir) ? hashLockfile(srcDir) : null,
     commandCount: commands.length
   };
 }
 function copyTree(src, dest) {
-  fs6.cpSync(src, dest, {
+  fs7.cpSync(src, dest, {
     recursive: true,
-    filter: (s) => !COPY_EXCLUDES.has(path6.basename(s))
+    filter: (s) => !COPY_EXCLUDES.has(path7.basename(s))
   });
 }
 function replaySession(store, sessionId, opts = {}) {
@@ -3708,7 +3748,7 @@ function replaySession(store, sessionId, opts = {}) {
   const events = store.getEvents(sessionId);
   const commands = extractCommands(events);
   const fingerprint = buildFingerprint(session, commands, session.cwd);
-  const workdir = fs6.mkdtempSync(path6.join(os.tmpdir(), "ledger-replay-"));
+  const workdir = fs7.mkdtempSync(path7.join(os.tmpdir(), "ledger-replay-"));
   const results = [];
   const timeoutMs = opts.timeoutMs ?? 12e4;
   let kept = false;
@@ -3718,7 +3758,7 @@ function replaySession(store, sessionId, opts = {}) {
         results.push({ ...c, exitCode: null, ok: false, durationMs: 0, skipped: true });
       }
     } else {
-      if (!opts.clean && fs6.existsSync(session.cwd)) {
+      if (!opts.clean && fs7.existsSync(session.cwd)) {
         copyTree(session.cwd, workdir);
       }
       for (const c of commands) {
@@ -3741,7 +3781,7 @@ function replaySession(store, sessionId, opts = {}) {
     if (opts.keep) {
       kept = true;
     } else {
-      fs6.rmSync(workdir, { recursive: true, force: true });
+      fs7.rmSync(workdir, { recursive: true, force: true });
     }
   }
   const ok = !opts.dryRun && results.length > 0 && results.every((r) => r.ok);
@@ -3930,6 +3970,19 @@ var DETECTORS = [
     pattern: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g
   }
 ];
+function compileDetectors(custom = [], disabledKinds = []) {
+  const disabled = new Set(disabledKinds);
+  const extra = [];
+  for (const c of custom) {
+    if (!c || typeof c.pattern !== "string" || typeof c.kind !== "string") continue;
+    try {
+      const flags = (c.flags ?? "").includes("g") ? c.flags : `${c.flags ?? ""}g`;
+      extra.push({ kind: c.kind, pattern: new RegExp(c.pattern, flags), captureGroup: c.captureGroup });
+    } catch {
+    }
+  }
+  return [...extra, ...DETECTORS.filter((d) => !disabled.has(d.kind))];
+}
 
 // src/redaction/redactor.ts
 var SENSITIVE_KEY = /^(?:password|passwd|pwd|secret|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|auth[_-]?token|client[_-]?secret|authorization|auth|cookie|set-cookie|private[_-]?key|session[_-]?id|token)$/i;
@@ -3939,10 +3992,10 @@ function placeholder(kind) {
 function bump(counts, kind, n = 1) {
   counts[kind] = (counts[kind] ?? 0) + n;
 }
-function redact(input) {
+function redact(input, detectors = DETECTORS) {
   let text = input;
   const redactions = {};
-  for (const d of DETECTORS) {
+  for (const d of detectors) {
     const flags = d.pattern.flags.includes("g") ? d.pattern.flags : d.pattern.flags + "g";
     const re = new RegExp(d.pattern.source, flags);
     text = text.replace(re, (match, ...args) => {
@@ -3966,11 +4019,11 @@ function redact(input) {
   }
   return { text, redactions };
 }
-function redactDeep(value) {
+function redactDeep(value, detectors = DETECTORS) {
   const redactions = {};
   const walk = (v) => {
     if (typeof v === "string") {
-      const r = redact(v);
+      const r = redact(v, detectors);
       for (const [k, n] of Object.entries(r.redactions)) bump(redactions, k, n);
       return r.text;
     }
@@ -4070,11 +4123,11 @@ function isTestCommand(cmd) {
 function mergeCounts(into, from) {
   for (const [k, n] of Object.entries(from)) into[k] = (into[k] ?? 0) + n;
 }
-function mapTool(p, ts) {
+function mapTool(p, ts, detectors) {
   const tool = String(p.tool_name ?? "tool");
   const input = p.tool_input ?? {};
-  const redactedInput = redactDeep(p.tool_input);
-  const redactedResp = redactDeep(p.tool_response);
+  const redactedInput = redactDeep(p.tool_input, detectors);
+  const redactedResp = redactDeep(p.tool_response, detectors);
   const counts = {};
   mergeCounts(counts, redactedInput.redactions);
   mergeCounts(counts, redactedResp.redactions);
@@ -4101,12 +4154,12 @@ function mapTool(p, ts) {
     redactions: counts
   };
 }
-function mapEvent(eventName, p, ts) {
+function mapEvent(eventName, p, ts, detectors) {
   switch (eventName) {
     case "SessionStart":
       return { sessionId: "", ts, type: "session_start", summary: `source=${p.source ?? "startup"}` };
     case "UserPromptSubmit": {
-      const r = redact(String(p.prompt ?? ""));
+      const r = redact(String(p.prompt ?? ""), detectors);
       return {
         sessionId: "",
         ts,
@@ -4117,7 +4170,7 @@ function mapEvent(eventName, p, ts) {
       };
     }
     case "PostToolUse":
-      return mapTool(p, ts);
+      return mapTool(p, ts, detectors);
     default:
       return null;
   }
@@ -4130,6 +4183,11 @@ function handleHook(event, payload) {
   const sessionId = payload.session_id ?? "unknown";
   const eventName = payload.hook_event_name ?? event;
   const now = (/* @__PURE__ */ new Date()).toISOString();
+  const config = loadConfig(cwd);
+  const detectors = compileDetectors(
+    config.redaction.customPatterns,
+    config.redaction.disabledKinds
+  );
   const store = openStore(cwd);
   try {
     const git = gitInfo(cwd);
@@ -4140,10 +4198,17 @@ function handleHook(event, payload) {
       gitBranch: git.branch,
       gitCommit: git.commit
     });
-    const mapped = mapEvent(eventName, payload, now);
+    const mapped = mapEvent(eventName, payload, now, detectors);
     if (!mapped) {
       if (eventName === "Stop" || eventName === "SessionEnd") {
         store.endSession(sessionId, now);
+      }
+      if (eventName === "SessionEnd" && config.autoPack) {
+        try {
+          const pack = buildPack(store, [sessionId]);
+          if (pack.sessions.length > 0) writePack(pack, packsDir(cwd));
+        } catch {
+        }
       }
       return { captured: false };
     }
@@ -4241,19 +4306,19 @@ function registerStatusline(program2) {
 
 // src/commands/doctor.ts
 var import_node_child_process3 = require("node:child_process");
-var fs7 = __toESM(require("node:fs"));
+var fs8 = __toESM(require("node:fs"));
 var os2 = __toESM(require("node:os"));
-var path7 = __toESM(require("node:path"));
+var path8 = __toESM(require("node:path"));
 function ledgerIgnored(cwd) {
-  const gi = path7.join(cwd, ".gitignore");
-  if (!fs7.existsSync(gi)) return false;
-  return fs7.readFileSync(gi, "utf8").split(/\r?\n/).some((l) => l.trim() === ".ledger" || l.trim() === ".ledger/");
+  const gi = path8.join(cwd, ".gitignore");
+  if (!fs8.existsSync(gi)) return false;
+  return fs8.readFileSync(gi, "utf8").split(/\r?\n/).some((l) => l.trim() === ".ledger" || l.trim() === ".ledger/");
 }
 function findPluginRoot() {
   let dir = __dirname;
   for (let i = 0; i < 6; i++) {
-    if (fs7.existsSync(path7.join(dir, ".claude-plugin", "plugin.json"))) return dir;
-    const parent = path7.dirname(dir);
+    if (fs8.existsSync(path8.join(dir, ".claude-plugin", "plugin.json"))) return dir;
+    const parent = path8.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -4271,11 +4336,11 @@ function runChecks(cwd) {
     }
   );
   try {
-    const tmp = fs7.mkdtempSync(path7.join(os2.tmpdir(), "ledger-doctor-"));
-    const s = new Store(path7.join(tmp, "probe.db"));
+    const tmp = fs8.mkdtempSync(path8.join(os2.tmpdir(), "ledger-doctor-"));
+    const s = new Store(path8.join(tmp, "probe.db"));
     s.upsertSession({ id: "probe", cwd: tmp, startedAt: (/* @__PURE__ */ new Date()).toISOString() });
     s.close();
-    fs7.rmSync(tmp, { recursive: true, force: true });
+    fs8.rmSync(tmp, { recursive: true, force: true });
     checks.push({ name: "SQLite", status: "ok", detail: "node:sqlite is working" });
   } catch {
     checks.push({
@@ -4314,6 +4379,12 @@ function runChecks(cwd) {
         fix: "Check permissions on .ledger/, or re-run ledger init -f"
       });
     }
+    const cfg = loadConfig(cwd);
+    checks.push({
+      name: "Config",
+      status: "ok",
+      detail: `auto-pack ${cfg.autoPack ? "on" : "off"}, ${cfg.redaction.customPatterns.length} custom pattern(s), ${cfg.redaction.disabledKinds.length} disabled`
+    });
   } else {
     checks.push({
       name: "Store",
@@ -4322,7 +4393,7 @@ function runChecks(cwd) {
       fix: "Run: ledger init"
     });
   }
-  if (fs7.existsSync(path7.join(cwd, ".git"))) {
+  if (fs8.existsSync(path8.join(cwd, ".git"))) {
     checks.push(
       ledgerIgnored(cwd) ? { name: ".gitignore", status: "ok", detail: ".ledger/ is ignored" } : {
         name: ".gitignore",
@@ -4345,8 +4416,8 @@ function runChecks(cwd) {
   }
   const root = findPluginRoot();
   if (root) {
-    const hasBundle = fs7.existsSync(path7.join(root, "dist", "cli.js"));
-    const hasHooks = fs7.existsSync(path7.join(root, "hooks", "hooks.json"));
+    const hasBundle = fs8.existsSync(path8.join(root, "dist", "cli.js"));
+    const hasHooks = fs8.existsSync(path8.join(root, "hooks", "hooks.json"));
     checks.push(
       hasBundle && hasHooks ? { name: "Plugin", status: "ok", detail: "bundle + hooks present" } : {
         name: "Plugin",

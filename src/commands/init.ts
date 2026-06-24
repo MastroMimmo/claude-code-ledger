@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { LEDGER_DIR_NAME, findLedgerDir } from '../config';
+import { serializeDefaultConfig } from '../settings';
 
 /**
  * Ensure `.ledger/` is git-ignored in `cwd`. Returns true if the .gitignore
@@ -40,6 +41,10 @@ export function registerInit(program: Command): void {
           metaPath,
           JSON.stringify({ schema: 1, createdAt: new Date().toISOString() }, null, 2) + '\n',
         );
+      }
+      const configFile = path.join(dir, 'config.json');
+      if (!fs.existsSync(configFile)) {
+        fs.writeFileSync(configFile, serializeDefaultConfig());
       }
 
       console.log(`Initialized Ledger store at ${dir}`);

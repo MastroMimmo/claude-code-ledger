@@ -1,8 +1,10 @@
-import { isInitialized } from '../config';
+import { isInitialized, packsDir } from '../config';
 import { openStore } from '../store/store';
-import { redact, redactDeep } from '../redaction';
+import { redact, redactDeep, compileDetectors, type Detector } from '../redaction';
 import type { EventInput, EventType } from '../store/types';
 import { gitInfo } from './git';
+import { loadConfig } from '../settings';
+import { buildPack, writePack } from '../pack/pack';
 
 /** Subset of the JSON payload Claude Code sends to hooks on stdin. */
 export interface HookPayload {
@@ -49,11 +51,11 @@ function mergeCounts(into: Record<string, number>, from: Record<string, number>)
   for (const [k, n] of Object.entries(from)) into[k] = (into[k] ?? 0) + n;
 }
 
-function mapTool(p: HookPayload, ts: string): EventInput {
+function mapTool(p: HookPayload, ts: string, detectors: Detector[]): EventInput {
   const tool = String(p.tool_name ?? 'tool');
   const input = (p.tool_input ?? {}) as Record<string, unknown>;
-  const redactedInput = redactDeep(p.tool_input);
-  const redactedResp = redactDeep(p.tool_response);
+  const redactedInput = redactDeep(p.tool_input, detectors);
+  const redactedResp = redactDeep(p.tool_response, detectors);
   const counts: Record<string, number> = {};
   mergeCounts(counts, redactedInput.redactions);
   mergeCounts(counts, redactedResp.redactions);
@@ -84,12 +86,17 @@ function mapTool(p: HookPayload, ts: string): EventInput {
   };
 }
 
-function mapEvent(eventName: string, p: HookPayload, ts: string): EventInput | null {
+function mapEvent(
+  eventName: string,
+  p: HookPayload,
+  ts: string,
+  detectors: Detector[],
+): EventInput | null {
   switch (eventName) {
     case 'SessionStart':
       return { sessionId: '', ts, type: 'session_start', summary: `source=${p.source ?? 'startup'}` };
     case 'UserPromptSubmit': {
-      const r = redact(String(p.prompt ?? ''));
+      const r = redact(String(p.prompt ?? ''), detectors);
       return {
         sessionId: '',
         ts,
@@ -100,7 +107,7 @@ function mapEvent(eventName: string, p: HookPayload, ts: string): EventInput | n
       };
     }
     case 'PostToolUse':
-      return mapTool(p, ts);
+      return mapTool(p, ts, detectors);
     default:
       // PreToolUse / Notification / SubagentStop / PreCompact / Stop / SessionEnd
       return null;
@@ -122,6 +129,11 @@ export function handleHook(event: string, payload: HookPayload): CaptureResult {
   const sessionId = payload.session_id ?? 'unknown';
   const eventName = payload.hook_event_name ?? event;
   const now = new Date().toISOString();
+  const config = loadConfig(cwd);
+  const detectors = compileDetectors(
+    config.redaction.customPatterns,
+    config.redaction.disabledKinds,
+  );
   const store = openStore(cwd);
   try {
     const git = gitInfo(cwd);
@@ -133,10 +145,18 @@ export function handleHook(event: string, payload: HookPayload): CaptureResult {
       gitCommit: git.commit,
     });
 
-    const mapped = mapEvent(eventName, payload, now);
+    const mapped = mapEvent(eventName, payload, now, detectors);
     if (!mapped) {
       if (eventName === 'Stop' || eventName === 'SessionEnd') {
         store.endSession(sessionId, now);
+      }
+      if (eventName === 'SessionEnd' && config.autoPack) {
+        try {
+          const pack = buildPack(store, [sessionId]);
+          if (pack.sessions.length > 0) writePack(pack, packsDir(cwd));
+        } catch {
+          // auto-pack must never break the session
+        }
       }
       return { captured: false };
     }

@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { findLedgerDir } from '../config';
 import { redact } from '../redaction';
+import { loadConfig } from '../settings';
 import { Store, openStore } from '../store/store';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
@@ -104,6 +105,12 @@ export function runChecks(cwd: string): Check[] {
         fix: 'Check permissions on .ledger/, or re-run ledger init -f',
       });
     }
+    const cfg = loadConfig(cwd);
+    checks.push({
+      name: 'Config',
+      status: 'ok',
+      detail: `auto-pack ${cfg.autoPack ? 'on' : 'off'}, ${cfg.redaction.customPatterns.length} custom pattern(s), ${cfg.redaction.disabledKinds.length} disabled`,
+    });
   } else {
     checks.push({
       name: 'Store',

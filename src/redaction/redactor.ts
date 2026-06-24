@@ -1,4 +1,4 @@
-import { DETECTORS } from './detectors';
+import { DETECTORS, type Detector } from './detectors';
 
 export interface RedactionResult {
   text: string;
@@ -23,11 +23,11 @@ function bump(counts: Record<string, number>, kind: string, n = 1): void {
 }
 
 /** Redact secrets and PII from a string. */
-export function redact(input: string): RedactionResult {
+export function redact(input: string, detectors: Detector[] = DETECTORS): RedactionResult {
   let text = input;
   const redactions: Record<string, number> = {};
 
-  for (const d of DETECTORS) {
+  for (const d of detectors) {
     const flags = d.pattern.flags.includes('g') ? d.pattern.flags : d.pattern.flags + 'g';
     const re = new RegExp(d.pattern.source, flags);
     text = text.replace(re, (match: string, ...args: unknown[]): string => {
@@ -58,12 +58,12 @@ export function redact(input: string): RedactionResult {
 }
 
 /** Recursively redact all strings within a JSON-serializable value. */
-export function redactDeep(value: unknown): DeepRedactionResult {
+export function redactDeep(value: unknown, detectors: Detector[] = DETECTORS): DeepRedactionResult {
   const redactions: Record<string, number> = {};
 
   const walk = (v: unknown): unknown => {
     if (typeof v === 'string') {
-      const r = redact(v);
+      const r = redact(v, detectors);
       for (const [k, n] of Object.entries(r.redactions)) bump(redactions, k, n);
       return r.text;
     }

@@ -83,6 +83,22 @@ describe('capture', () => {
     expect(events[0]!.type).toBe('test');
   });
 
+  it('auto-generates a context pack on SessionEnd when enabled', () => {
+    fs.writeFileSync(path.join(dir, '.ledger', 'config.json'), JSON.stringify({ autoPack: true }));
+    hook('PostToolUse', { tool_name: 'Bash', tool_input: { command: 'echo hi' } });
+    hook('SessionEnd', {});
+    const packs = fs.readdirSync(path.join(dir, '.ledger', 'packs'));
+    expect(packs.some((f) => f.endsWith('.json'))).toBe(true);
+  });
+
+  it('does not auto-pack when disabled (default)', () => {
+    hook('PostToolUse', { tool_name: 'Bash', tool_input: { command: 'echo hi' } });
+    hook('SessionEnd', {});
+    const packsDir = path.join(dir, '.ledger', 'packs');
+    const packs = fs.existsSync(packsDir) ? fs.readdirSync(packsDir) : [];
+    expect(packs.length).toBe(0);
+  });
+
   it('classifies Edit/Write as file_edit', () => {
     hook('PostToolUse', { tool_name: 'Write', tool_input: { file_path: '/a/b.ts', content: 'x' } });
     const store = openStore(dir);

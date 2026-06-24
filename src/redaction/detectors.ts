@@ -137,3 +137,34 @@ export const DETECTORS: Detector[] = [
       /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
   },
 ];
+
+/** A user-supplied detector, loaded from .ledger/config.json. */
+export interface CustomPattern {
+  kind: string;
+  pattern: string;
+  flags?: string;
+  captureGroup?: number;
+}
+
+/**
+ * Build the effective detector list: user custom patterns first (so org-specific
+ * secrets win), then the built-ins minus any disabled kinds. Invalid custom
+ * patterns are skipped rather than throwing.
+ */
+export function compileDetectors(
+  custom: CustomPattern[] = [],
+  disabledKinds: string[] = [],
+): Detector[] {
+  const disabled = new Set(disabledKinds);
+  const extra: Detector[] = [];
+  for (const c of custom) {
+    if (!c || typeof c.pattern !== 'string' || typeof c.kind !== 'string') continue;
+    try {
+      const flags = (c.flags ?? '').includes('g') ? (c.flags as string) : `${c.flags ?? ''}g`;
+      extra.push({ kind: c.kind, pattern: new RegExp(c.pattern, flags), captureGroup: c.captureGroup });
+    } catch {
+      // skip invalid regex
+    }
+  }
+  return [...extra, ...DETECTORS.filter((d) => !disabled.has(d.kind))];
+}

@@ -144,7 +144,29 @@ It prints e.g. `⟐ Ledger 12e · 3 redacted` for the current session, or `◌ L
 
 - **Store location:** `.ledger/` in the nearest ancestor directory; override with `LEDGER_HOME`.
 - **Capture opt-in:** capture is skipped unless the repo has a `.ledger/` store. Set `LEDGER_CAPTURE_AUTOINIT=1` to auto-create on first hook.
-- Keep `.ledger/` git-ignored - it holds local capture data.
+- Keep `.ledger/` git-ignored - it holds local capture data (`ledger init` adds it for you).
+
+### `.ledger/config.json` (per repo)
+
+`ledger init` writes a config you can edit:
+
+```json
+{
+  "autoPack": false,
+  "redaction": {
+    "customPatterns": [
+      { "kind": "acme_token", "pattern": "ACME-[0-9]{6}" }
+    ],
+    "disabledKinds": ["ipv4"]
+  }
+}
+```
+
+- **`autoPack`**: when `true`, a context pack is generated automatically at the end of each session (or set `LEDGER_AUTO_PACK=1`).
+- **`redaction.customPatterns`**: org-specific secrets to redact (`kind` is the label, `pattern` is a JS regex; optional `flags`, `captureGroup`). Custom patterns run first.
+- **`redaction.disabledKinds`**: built-in detector kinds to turn off.
+
+`ledger doctor` reports the active config.
 
 ## Architecture
 
