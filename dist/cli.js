@@ -968,8 +968,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path9 = require("node:path");
-    var fs9 = require("node:fs");
+    var path10 = require("node:path");
+    var fs10 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1901,11 +1901,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path9.resolve(baseDir, baseName);
-          if (fs9.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path9.extname(baseName))) return void 0;
+          const localBin = path10.resolve(baseDir, baseName);
+          if (fs10.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path10.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs9.existsSync(`${localBin}${ext}`)
+            (ext) => fs10.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1917,21 +1917,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs9.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs10.realpathSync(this._scriptPath);
           } catch (err) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path9.resolve(
-            path9.dirname(resolvedScriptPath),
+          executableDir = path10.resolve(
+            path10.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path9.basename(
+            const legacyName = path10.basename(
               this._scriptPath,
-              path9.extname(this._scriptPath)
+              path10.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1942,7 +1942,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path9.extname(executableFile));
+        launchWithNode = sourceExt.includes(path10.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2782,7 +2782,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path9.basename(filename, path9.extname(filename));
+        this._name = path10.basename(filename, path10.extname(filename));
         return this;
       }
       /**
@@ -2796,9 +2796,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path10) {
-        if (path10 === void 0) return this._executableDir;
-        this._executableDir = path10;
+      executableDir(path11) {
+        if (path11 === void 0) return this._executableDir;
+        this._executableDir = path11;
         return this;
       }
       /**
@@ -3198,6 +3198,10 @@ function registerInit(program2) {
   });
 }
 
+// src/capture/pending.ts
+var fs6 = __toESM(require("node:fs"));
+var path6 = __toESM(require("node:path"));
+
 // src/store/store.ts
 var import_warnings = __toESM(require_warnings());
 var import_node_module = require("node:module");
@@ -3362,6 +3366,72 @@ function openStore(start) {
   return new Store(dbPath(start));
 }
 
+// src/capture/pending.ts
+function pendingPath(cwd) {
+  return path6.join(ledgerDir(cwd), "pending.jsonl");
+}
+function appendPending(cwd, op) {
+  const p = pendingPath(cwd);
+  fs6.mkdirSync(path6.dirname(p), { recursive: true });
+  fs6.appendFileSync(p, JSON.stringify(op) + "\n");
+}
+function ingestPending(store, cwd) {
+  const p = pendingPath(cwd);
+  const tmp = `${p}.ingesting`;
+  try {
+    fs6.renameSync(p, tmp);
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  try {
+    const lines = fs6.readFileSync(tmp, "utf8").split("\n").filter((l) => l.length > 0);
+    for (const line of lines) {
+      let op;
+      try {
+        op = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      try {
+        store.upsertSession({
+          id: op.sessionId,
+          cwd: op.cwd,
+          startedAt: op.ts,
+          gitBranch: op.op === "event" ? op.gitBranch ?? null : null,
+          gitCommit: op.op === "event" ? op.gitCommit ?? null : null
+        });
+        if (op.op === "event") {
+          store.addEvent({
+            sessionId: op.sessionId,
+            ts: op.ts,
+            type: op.type,
+            tool: op.tool ?? null,
+            summary: op.summary ?? null,
+            payload: op.payload,
+            redactions: op.redactions
+          });
+        } else {
+          store.endSession(op.sessionId, op.ts);
+        }
+        count++;
+      } catch {
+      }
+    }
+  } finally {
+    fs6.rmSync(tmp, { force: true });
+  }
+  return count;
+}
+function openSyncedStore(cwd) {
+  const store = openStore(cwd);
+  try {
+    ingestPending(store, cwd);
+  } catch {
+  }
+  return store;
+}
+
 // src/commands/status.ts
 function registerStatus(program2) {
   program2.command("status").description("Show store status: sessions, events and last activity").option("--json", "output as JSON").action((opts) => {
@@ -3370,7 +3440,7 @@ function registerStatus(program2) {
       process.exitCode = 1;
       return;
     }
-    const store = openStore();
+    const store = openSyncedStore();
     const s = store.stats();
     store.close();
     if (opts.json) {
@@ -3392,7 +3462,7 @@ function registerList(program2) {
       return;
     }
     const limit = Number.parseInt(opts.limit ?? "20", 10) || 20;
-    const store = openStore();
+    const store = openSyncedStore();
     const sessions = store.listSessions(limit);
     store.close();
     if (opts.json) {
@@ -3419,7 +3489,7 @@ function registerShow(program2) {
       process.exitCode = 1;
       return;
     }
-    const store = openStore();
+    const store = openSyncedStore();
     const target = session ? store.getSession(session) : store.latestSession();
     if (!target) {
       store.close();
@@ -3450,8 +3520,8 @@ function registerShow(program2) {
 }
 
 // src/pack/pack.ts
-var fs6 = __toESM(require("node:fs"));
-var path6 = __toESM(require("node:path"));
+var fs7 = __toESM(require("node:fs"));
+var path7 = __toESM(require("node:path"));
 var TODO_RE = /\b(TODO|FIXME|HACK|XXX|next step|follow[- ]?up|open question)\b/i;
 function defaultTitle(sessions) {
   if (sessions.length === 1) return `Context pack - session ${sessions[0].id}`;
@@ -3590,18 +3660,18 @@ function slugify(s) {
   return s.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 40) || "pack";
 }
 function writePack(pack, outDir) {
-  fs6.mkdirSync(outDir, { recursive: true });
+  fs7.mkdirSync(outDir, { recursive: true });
   const slug = slugify(pack.sessions[0]?.id ?? "pack");
   const stamp = pack.createdAt.replace(/[:.]/g, "-");
   const base = `pack-${slug}-${stamp}`;
-  const jsonPath = path6.join(outDir, `${base}.json`);
-  const mdPath = path6.join(outDir, `${base}.md`);
-  fs6.writeFileSync(jsonPath, JSON.stringify(pack, null, 2) + "\n");
-  fs6.writeFileSync(mdPath, renderMarkdown(pack));
+  const jsonPath = path7.join(outDir, `${base}.json`);
+  const mdPath = path7.join(outDir, `${base}.md`);
+  fs7.writeFileSync(jsonPath, JSON.stringify(pack, null, 2) + "\n");
+  fs7.writeFileSync(mdPath, renderMarkdown(pack));
   return { jsonPath, mdPath };
 }
 function importPack(store, jsonPath) {
-  const pack = JSON.parse(fs6.readFileSync(jsonPath, "utf8"));
+  const pack = JSON.parse(fs7.readFileSync(jsonPath, "utf8"));
   if (pack.version !== 1) throw new Error(`Unsupported pack version: ${String(pack.version)}`);
   let sessions = 0;
   for (const s of pack.sessions) {
@@ -3640,7 +3710,7 @@ function registerPack(program2) {
       process.exitCode = 1;
       return;
     }
-    const store = openStore();
+    const store = openSyncedStore();
     let ids = sessions;
     if (ids.length === 0) {
       const latest = store.latestSession();
@@ -3674,7 +3744,7 @@ function registerImport(program2) {
       process.exitCode = 1;
       return;
     }
-    const store = openStore();
+    const store = openSyncedStore();
     try {
       const res = importPack(store, file);
       console.log(`Imported ${res.sessions} session(s) and ${res.events} event(s) from ${file}`);
@@ -3687,9 +3757,9 @@ function registerImport(program2) {
 // src/replay/replay.ts
 var import_node_child_process = require("node:child_process");
 var import_node_crypto = require("node:crypto");
-var fs7 = __toESM(require("node:fs"));
+var fs8 = __toESM(require("node:fs"));
 var os = __toESM(require("node:os"));
-var path7 = __toESM(require("node:path"));
+var path8 = __toESM(require("node:path"));
 var COPY_EXCLUDES = /* @__PURE__ */ new Set(["node_modules", ".git", ".ledger", "dist", "coverage"]);
 var LOCKFILES = [
   "package-lock.json",
@@ -3717,9 +3787,9 @@ function extractCommands(events) {
 }
 function hashLockfile(dir) {
   for (const name of LOCKFILES) {
-    const p = path7.join(dir, name);
-    if (fs7.existsSync(p)) {
-      const h = (0, import_node_crypto.createHash)("sha256").update(fs7.readFileSync(p)).digest("hex");
+    const p = path8.join(dir, name);
+    if (fs8.existsSync(p)) {
+      const h = (0, import_node_crypto.createHash)("sha256").update(fs8.readFileSync(p)).digest("hex");
       return `${name}:${h.slice(0, 12)}`;
     }
   }
@@ -3732,14 +3802,14 @@ function buildFingerprint(session, commands, srcDir) {
     arch: process.arch,
     gitBranch: session.gitBranch,
     gitCommit: session.gitCommit,
-    depsHash: srcDir && fs7.existsSync(srcDir) ? hashLockfile(srcDir) : null,
+    depsHash: srcDir && fs8.existsSync(srcDir) ? hashLockfile(srcDir) : null,
     commandCount: commands.length
   };
 }
 function copyTree(src, dest) {
-  fs7.cpSync(src, dest, {
+  fs8.cpSync(src, dest, {
     recursive: true,
-    filter: (s) => !COPY_EXCLUDES.has(path7.basename(s))
+    filter: (s) => !COPY_EXCLUDES.has(path8.basename(s))
   });
 }
 function replaySession(store, sessionId, opts = {}) {
@@ -3748,7 +3818,7 @@ function replaySession(store, sessionId, opts = {}) {
   const events = store.getEvents(sessionId);
   const commands = extractCommands(events);
   const fingerprint = buildFingerprint(session, commands, session.cwd);
-  const workdir = fs7.mkdtempSync(path7.join(os.tmpdir(), "ledger-replay-"));
+  const workdir = fs8.mkdtempSync(path8.join(os.tmpdir(), "ledger-replay-"));
   const results = [];
   const timeoutMs = opts.timeoutMs ?? 12e4;
   let kept = false;
@@ -3758,7 +3828,7 @@ function replaySession(store, sessionId, opts = {}) {
         results.push({ ...c, exitCode: null, ok: false, durationMs: 0, skipped: true });
       }
     } else {
-      if (!opts.clean && fs7.existsSync(session.cwd)) {
+      if (!opts.clean && fs8.existsSync(session.cwd)) {
         copyTree(session.cwd, workdir);
       }
       for (const c of commands) {
@@ -3781,7 +3851,7 @@ function replaySession(store, sessionId, opts = {}) {
     if (opts.keep) {
       kept = true;
     } else {
-      fs7.rmSync(workdir, { recursive: true, force: true });
+      fs8.rmSync(workdir, { recursive: true, force: true });
     }
   }
   const ok = !opts.dryRun && results.length > 0 && results.every((r) => r.ok);
@@ -3831,7 +3901,7 @@ function registerReplay(program2) {
         process.exitCode = 1;
         return;
       }
-      const store = openStore();
+      const store = openSyncedStore();
       const target = session ? store.getSession(session) : store.latestSession();
       if (!target) {
         store.close();
@@ -4188,37 +4258,39 @@ function handleHook(event, payload) {
     config.redaction.customPatterns,
     config.redaction.disabledKinds
   );
-  const store = openStore(cwd);
-  try {
-    const git = gitInfo(cwd);
-    store.upsertSession({
-      id: sessionId,
-      cwd,
-      startedAt: now,
-      gitBranch: git.branch,
-      gitCommit: git.commit
-    });
-    const mapped = mapEvent(eventName, payload, now, detectors);
-    if (!mapped) {
-      if (eventName === "Stop" || eventName === "SessionEnd") {
-        store.endSession(sessionId, now);
-      }
-      if (eventName === "SessionEnd" && config.autoPack) {
+  if (eventName === "Stop" || eventName === "SessionEnd") {
+    appendPending(cwd, { op: "end", sessionId, cwd, ts: now });
+    if (eventName === "SessionEnd" && config.autoPack) {
+      try {
+        const store = openSyncedStore(cwd);
         try {
           const pack = buildPack(store, [sessionId]);
           if (pack.sessions.length > 0) writePack(pack, packsDir(cwd));
-        } catch {
+        } finally {
+          store.close();
         }
+      } catch {
       }
-      return { captured: false };
     }
-    mapped.sessionId = sessionId;
-    const ev = store.addEvent(mapped);
-    if (eventName === "SessionEnd") store.endSession(sessionId, now);
-    return { captured: true, type: ev.type, redactions: ev.redactions };
-  } finally {
-    store.close();
+    return { captured: false };
   }
+  const mapped = mapEvent(eventName, payload, now, detectors);
+  if (!mapped) return { captured: false };
+  const git = eventName === "SessionStart" ? gitInfo(cwd) : { branch: void 0, commit: void 0 };
+  appendPending(cwd, {
+    op: "event",
+    sessionId,
+    cwd,
+    ts: now,
+    gitBranch: git.branch ?? void 0,
+    gitCommit: git.commit ?? void 0,
+    type: mapped.type,
+    tool: mapped.tool ?? void 0,
+    summary: mapped.summary ?? void 0,
+    payload: mapped.payload,
+    redactions: mapped.redactions
+  });
+  return { captured: true, type: mapped.type, redactions: mapped.redactions };
 }
 
 // src/commands/hook.ts
@@ -4282,7 +4354,7 @@ function registerStatusline(program2) {
         console.log("\u25CC Ledger: ledger init");
         return;
       }
-      const store = openStore(cwd);
+      const store = openSyncedStore(cwd);
       try {
         const session = sessionId ? store.getSession(sessionId) : store.latestSession();
         if (session) {
@@ -4306,19 +4378,19 @@ function registerStatusline(program2) {
 
 // src/commands/doctor.ts
 var import_node_child_process3 = require("node:child_process");
-var fs8 = __toESM(require("node:fs"));
+var fs9 = __toESM(require("node:fs"));
 var os2 = __toESM(require("node:os"));
-var path8 = __toESM(require("node:path"));
+var path9 = __toESM(require("node:path"));
 function ledgerIgnored(cwd) {
-  const gi = path8.join(cwd, ".gitignore");
-  if (!fs8.existsSync(gi)) return false;
-  return fs8.readFileSync(gi, "utf8").split(/\r?\n/).some((l) => l.trim() === ".ledger" || l.trim() === ".ledger/");
+  const gi = path9.join(cwd, ".gitignore");
+  if (!fs9.existsSync(gi)) return false;
+  return fs9.readFileSync(gi, "utf8").split(/\r?\n/).some((l) => l.trim() === ".ledger" || l.trim() === ".ledger/");
 }
 function findPluginRoot() {
   let dir = __dirname;
   for (let i = 0; i < 6; i++) {
-    if (fs8.existsSync(path8.join(dir, ".claude-plugin", "plugin.json"))) return dir;
-    const parent = path8.dirname(dir);
+    if (fs9.existsSync(path9.join(dir, ".claude-plugin", "plugin.json"))) return dir;
+    const parent = path9.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -4336,11 +4408,11 @@ function runChecks(cwd) {
     }
   );
   try {
-    const tmp = fs8.mkdtempSync(path8.join(os2.tmpdir(), "ledger-doctor-"));
-    const s = new Store(path8.join(tmp, "probe.db"));
+    const tmp = fs9.mkdtempSync(path9.join(os2.tmpdir(), "ledger-doctor-"));
+    const s = new Store(path9.join(tmp, "probe.db"));
     s.upsertSession({ id: "probe", cwd: tmp, startedAt: (/* @__PURE__ */ new Date()).toISOString() });
     s.close();
-    fs8.rmSync(tmp, { recursive: true, force: true });
+    fs9.rmSync(tmp, { recursive: true, force: true });
     checks.push({ name: "SQLite", status: "ok", detail: "node:sqlite is working" });
   } catch {
     checks.push({
@@ -4363,7 +4435,7 @@ function runChecks(cwd) {
   if (dir) {
     checks.push({ name: "Store", status: "ok", detail: `initialized at ${dir}` });
     try {
-      const store = openStore(cwd);
+      const store = openSyncedStore(cwd);
       const st = store.stats();
       store.close();
       checks.push({
@@ -4393,7 +4465,7 @@ function runChecks(cwd) {
       fix: "Run: ledger init"
     });
   }
-  if (fs8.existsSync(path8.join(cwd, ".git"))) {
+  if (fs9.existsSync(path9.join(cwd, ".git"))) {
     checks.push(
       ledgerIgnored(cwd) ? { name: ".gitignore", status: "ok", detail: ".ledger/ is ignored" } : {
         name: ".gitignore",
@@ -4416,8 +4488,8 @@ function runChecks(cwd) {
   }
   const root = findPluginRoot();
   if (root) {
-    const hasBundle = fs8.existsSync(path8.join(root, "dist", "cli.js"));
-    const hasHooks = fs8.existsSync(path8.join(root, "hooks", "hooks.json"));
+    const hasBundle = fs9.existsSync(path9.join(root, "dist", "cli.js"));
+    const hasHooks = fs9.existsSync(path9.join(root, "hooks", "hooks.json"));
     checks.push(
       hasBundle && hasHooks ? { name: "Plugin", status: "ok", detail: "bundle + hooks present" } : {
         name: "Plugin",

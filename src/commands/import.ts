@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { isInitialized } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 import { importPack } from '../pack/pack';
 
 export function registerImport(program: Command): void {
@@ -14,7 +14,7 @@ export function registerImport(program: Command): void {
         process.exitCode = 1;
         return;
       }
-      const store = openStore();
+      const store = openSyncedStore();
       try {
         const res = importPack(store, file);
         console.log(`Imported ${res.sessions} session(s) and ${res.events} event(s) from ${file}`);

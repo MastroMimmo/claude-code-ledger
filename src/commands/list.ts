@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { isInitialized } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 
 export function registerList(program: Command): void {
   program
@@ -16,7 +16,7 @@ export function registerList(program: Command): void {
         return;
       }
       const limit = Number.parseInt(opts.limit ?? '20', 10) || 20;
-      const store = openStore();
+      const store = openSyncedStore();
       const sessions = store.listSessions(limit);
       store.close();
       if (opts.json) {

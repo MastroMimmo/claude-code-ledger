@@ -6,7 +6,8 @@ import * as path from 'node:path';
 import { findLedgerDir } from '../config';
 import { redact } from '../redaction';
 import { loadConfig } from '../settings';
-import { Store, openStore } from '../store/store';
+import { Store } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
 
@@ -89,7 +90,7 @@ export function runChecks(cwd: string): Check[] {
   if (dir) {
     checks.push({ name: 'Store', status: 'ok', detail: `initialized at ${dir}` });
     try {
-      const store = openStore(cwd);
+      const store = openSyncedStore(cwd);
       const st = store.stats();
       store.close();
       checks.push({

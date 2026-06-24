@@ -168,6 +168,14 @@ It prints e.g. `⟐ Ledger 12e · 3 redacted` for the current session, or `◌ L
 
 `ledger doctor` reports the active config.
 
+### Performance
+
+Capture stays off the hot path: each hook redacts and appends one line to an
+append-only `.ledger/pending.jsonl` (no database open, no `git` per event - git
+is resolved once at session start). Read commands (`status`, `show`, `pack`,
+`replay`, the status line) drain the log into SQLite lazily, so the database
+remains the source of truth for queries without being touched on every tool call.
+
 ## Architecture
 
 | Doc | Contents |

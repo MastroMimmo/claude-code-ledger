@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { handleHook } from '../src/capture/capture';
-import { openStore } from '../src/store/store';
+import { openSyncedStore } from '../src/capture/pending';
 
 describe('capture', () => {
   let dir: string;
@@ -33,7 +33,12 @@ describe('capture', () => {
     hook('PostToolUse', { tool_name: 'Bash', tool_input: { command: 'npm test' } });
     hook('Stop', {});
 
-    const store = openStore(dir);
+    // The hot-path log itself must already be redacted (before any DB sync).
+    const pendingRaw = fs.readFileSync(path.join(dir, '.ledger', 'pending.jsonl'), 'utf8');
+    expect(pendingRaw).not.toContain('supersecretvalue');
+    expect(pendingRaw).not.toContain('AKIAIOSFODNN7EXAMPLE');
+
+    const store = openSyncedStore(dir);
     const session = store.latestSession()!;
     const events = store.getEvents('s1');
     store.close();
@@ -77,7 +82,7 @@ describe('capture', () => {
 
   it('classifies test runner commands as test events', () => {
     hook('PostToolUse', { tool_name: 'Bash', tool_input: { command: 'pytest -q' } });
-    const store = openStore(dir);
+    const store = openSyncedStore(dir);
     const events = store.getEvents('s1');
     store.close();
     expect(events[0]!.type).toBe('test');
@@ -101,7 +106,7 @@ describe('capture', () => {
 
   it('classifies Edit/Write as file_edit', () => {
     hook('PostToolUse', { tool_name: 'Write', tool_input: { file_path: '/a/b.ts', content: 'x' } });
-    const store = openStore(dir);
+    const store = openSyncedStore(dir);
     const events = store.getEvents('s1');
     store.close();
     expect(events[0]!.type).toBe('file_edit');

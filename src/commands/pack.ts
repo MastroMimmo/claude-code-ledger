@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { isInitialized, packsDir } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 import { buildPack, writePack } from '../pack/pack';
 
 export function registerPack(program: Command): void {
@@ -16,7 +16,7 @@ export function registerPack(program: Command): void {
         process.exitCode = 1;
         return;
       }
-      const store = openStore();
+      const store = openSyncedStore();
       let ids = sessions;
       if (ids.length === 0) {
         const latest = store.latestSession();

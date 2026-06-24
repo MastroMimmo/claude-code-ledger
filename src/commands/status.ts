@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { isInitialized } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 
 export function registerStatus(program: Command): void {
   program
@@ -13,7 +13,7 @@ export function registerStatus(program: Command): void {
         process.exitCode = 1;
         return;
       }
-      const store = openStore();
+      const store = openSyncedStore();
       const s = store.stats();
       store.close();
       if (opts.json) {

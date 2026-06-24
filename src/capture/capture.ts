@@ -1,10 +1,10 @@
 import { isInitialized, packsDir } from '../config';
-import { openStore } from '../store/store';
 import { redact, redactDeep, compileDetectors, type Detector } from '../redaction';
 import type { EventInput, EventType } from '../store/types';
 import { gitInfo } from './git';
 import { loadConfig } from '../settings';
 import { buildPack, writePack } from '../pack/pack';
+import { appendPending, openSyncedStore } from './pending';
 
 /** Subset of the JSON payload Claude Code sends to hooks on stdin. */
 export interface HookPayload {
@@ -134,38 +134,43 @@ export function handleHook(event: string, payload: HookPayload): CaptureResult {
     config.redaction.customPatterns,
     config.redaction.disabledKinds,
   );
-  const store = openStore(cwd);
-  try {
-    const git = gitInfo(cwd);
-    store.upsertSession({
-      id: sessionId,
-      cwd,
-      startedAt: now,
-      gitBranch: git.branch,
-      gitCommit: git.commit,
-    });
 
-    const mapped = mapEvent(eventName, payload, now, detectors);
-    if (!mapped) {
-      if (eventName === 'Stop' || eventName === 'SessionEnd') {
-        store.endSession(sessionId, now);
-      }
-      if (eventName === 'SessionEnd' && config.autoPack) {
+  // Lifecycle events close the session; no event row is written.
+  if (eventName === 'Stop' || eventName === 'SessionEnd') {
+    appendPending(cwd, { op: 'end', sessionId, cwd, ts: now });
+    if (eventName === 'SessionEnd' && config.autoPack) {
+      try {
+        const store = openSyncedStore(cwd);
         try {
           const pack = buildPack(store, [sessionId]);
           if (pack.sessions.length > 0) writePack(pack, packsDir(cwd));
-        } catch {
-          // auto-pack must never break the session
+        } finally {
+          store.close();
         }
+      } catch {
+        // auto-pack must never break the session
       }
-      return { captured: false };
     }
-
-    mapped.sessionId = sessionId;
-    const ev = store.addEvent(mapped);
-    if (eventName === 'SessionEnd') store.endSession(sessionId, now);
-    return { captured: true, type: ev.type, redactions: ev.redactions };
-  } finally {
-    store.close();
+    return { captured: false };
   }
+
+  const mapped = mapEvent(eventName, payload, now, detectors);
+  if (!mapped) return { captured: false };
+
+  // git is the expensive part, so resolve it only once, at session start.
+  const git = eventName === 'SessionStart' ? gitInfo(cwd) : { branch: undefined, commit: undefined };
+  appendPending(cwd, {
+    op: 'event',
+    sessionId,
+    cwd,
+    ts: now,
+    gitBranch: git.branch ?? undefined,
+    gitCommit: git.commit ?? undefined,
+    type: mapped.type,
+    tool: mapped.tool ?? undefined,
+    summary: mapped.summary ?? undefined,
+    payload: mapped.payload,
+    redactions: mapped.redactions,
+  });
+  return { captured: true, type: mapped.type, redactions: mapped.redactions };
 }

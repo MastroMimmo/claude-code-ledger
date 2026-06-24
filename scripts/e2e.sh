@@ -30,12 +30,18 @@ emit "{\"session_id\":\"v1\",\"cwd\":\"$WORK\",\"hook_event_name\":\"PostToolUse
 emit "{\"session_id\":\"v1\",\"cwd\":\"$WORK\",\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"true\"}}" PostToolUse
 emit "{\"session_id\":\"v1\",\"cwd\":\"$WORK\",\"hook_event_name\":\"Stop\"}" Stop
 
-# --- assert no raw secret in the store ---
+# --- assert no raw secret in the hot-path log (written before any DB sync) ---
+if [ -f "$WORK/.ledger/pending.jsonl" ]; then
+  if grep -aqs "$SECRET_AWS" "$WORK/.ledger/pending.jsonl"; then fail "AWS secret leaked into pending log"; fi
+  if grep -aqs "$SECRET_PW"  "$WORK/.ledger/pending.jsonl"; then fail "password leaked into pending log"; fi
+fi
+
+# --- status drains pending into the store; then assert the store is clean too ---
+node "$CLI" status | grep -q "Events:" || fail "status output missing"
 if grep -aqs "$SECRET_AWS" "$WORK/.ledger/ledger.db"; then fail "AWS secret leaked into store"; fi
 if grep -aqs "$SECRET_PW"  "$WORK/.ledger/ledger.db"; then fail "password leaked into store"; fi
 
-# --- status / pack ---
-node "$CLI" status | grep -q "Events:" || fail "status output missing"
+# --- pack ---
 node "$CLI" pack v1 --title "Verify" >/dev/null
 PACK="$(ls "$WORK"/.ledger/packs/*.json 2>/dev/null | head -1)"
 [ -f "$PACK" ] || fail "context pack json not created"

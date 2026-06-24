@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { isInitialized } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 
 export function registerShow(program: Command): void {
   program
@@ -14,7 +14,7 @@ export function registerShow(program: Command): void {
         process.exitCode = 1;
         return;
       }
-      const store = openStore();
+      const store = openSyncedStore();
       const target = session ? store.getSession(session) : store.latestSession();
       if (!target) {
         store.close();

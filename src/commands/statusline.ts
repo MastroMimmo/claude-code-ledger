@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { findLedgerDir } from '../config';
-import { openStore } from '../store/store';
+import { openSyncedStore } from '../capture/pending';
 
 function readStdin(): Promise<string> {
   return new Promise((resolve) => {
@@ -45,7 +45,7 @@ export function registerStatusline(program: Command): void {
           console.log('◌ Ledger: ledger init');
           return;
         }
-        const store = openStore(cwd);
+        const store = openSyncedStore(cwd);
         try {
           const session = sessionId ? store.getSession(sessionId) : store.latestSession();
           if (session) {

@@ -29,6 +29,8 @@ flowchart TD
 
 Capture never blocks Claude Code: the `hook` command swallows all errors and always exits 0. Capture is skipped unless the repo is initialized (`.ledger/` exists), unless `LEDGER_CAPTURE_AUTOINIT=1`.
 
+**Hot-path fast write.** Hooks do not open SQLite. They redact and append one op to `.ledger/pending.jsonl` (`git` is resolved only at session start). Read commands open the store through `openSyncedStore`, which drains `pending.jsonl` into SQLite via an atomic rename and then serves the query. This keeps per-tool overhead minimal and avoids DB lock contention when hooks fire in parallel.
+
 ## Data model
 
 - **session** - `id`, `cwd`, `started_at`, `ended_at`, `git_branch`, `git_commit`, `meta`.
