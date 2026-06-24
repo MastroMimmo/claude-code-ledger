@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-ledger",
+  "name": "ledger",
   "version": "0.1.0",
   "description": "Local-first capture, secret/PII redaction, transferable context packs and deterministic replay for Claude Code sessions.",
   "author": {

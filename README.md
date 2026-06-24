@@ -93,7 +93,7 @@ This repo ships a prebuilt, single-file CLI (`dist/cli.js`), so the plugin works
 
 ```
 /plugin marketplace add /absolute/path/to/claude-code-ledger
-/plugin install claude-code-ledger
+/plugin install ledger
 ```
 
 Then run `ledger init` in any repo where you want capture (it also adds `.ledger/` to your `.gitignore` and prints the next steps). Hooks call `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook <event>`; the bundled file means there is nothing to compile first.
@@ -104,10 +104,10 @@ Once the plugin is installed you can drive Ledger without leaving Claude Code:
 
 | Slash command | Does |
 |---|---|
-| `/claude-code-ledger:status` | What has been captured in this repo |
-| `/claude-code-ledger:show` | Summarize the latest session's events |
-| `/claude-code-ledger:pack` | Generate a context pack (add `--title "..."`) |
-| `/claude-code-ledger:replay` | Show the replay plan (dry run) |
+| `/ledger:status` | What has been captured in this repo |
+| `/ledger:show` | Summarize the latest session's events |
+| `/ledger:pack` | Generate a context pack (add `--title "..."`) |
+| `/ledger:replay` | Show the replay plan (dry run) |
 
 ### Status line (optional)
 

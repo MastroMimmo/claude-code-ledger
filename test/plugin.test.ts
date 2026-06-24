@@ -55,7 +55,7 @@ describe('Claude Code plugin packaging', () => {
   it('plugin.json matches the package version and references hooks', () => {
     const pkg = readJson('package.json');
     const plugin = readJson('.claude-plugin/plugin.json');
-    expect(plugin.name).toBe('claude-code-ledger');
+    expect(plugin.name).toBe('ledger');
     expect(plugin.version).toBe(pkg.version);
     expect(plugin.description).toBeTruthy();
     expect(plugin.hooks).toBe('./hooks/hooks.json');
@@ -77,6 +77,6 @@ describe('Claude Code plugin packaging', () => {
     const mkt = readJson('.claude-plugin/marketplace.json') as {
       plugins: Array<{ name: string }>;
     };
-    expect(mkt.plugins.some((p) => p.name === 'claude-code-ledger')).toBe(true);
+    expect(mkt.plugins.some((p) => p.name === 'ledger')).toBe(true);
   });
 });

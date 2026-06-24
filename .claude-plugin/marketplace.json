@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "claude-code-ledger",
+      "name": "ledger",
       "source": "./",
       "description": "Local-first capture, secret/PII redaction, transferable context packs and deterministic replay for Claude Code sessions."
     }
