@@ -198,6 +198,10 @@ npm run dev -- <command>   # run the CLI from source via tsx
 
 Ledger is built around data minimization: redact before persistence, keep data local and per-repo, never harvest credentials. It does not require or store any LLM API keys.
 
+## Roadmap
+
+The path from today's release to a stable 1.0 (distribution, performance, cross-platform, frozen formats) is tracked in [ROADMAP.md](ROADMAP.md).
+
 ## Contributing
 
 PRs welcome - see [CONTRIBUTING.md](CONTRIBUTING.md). The golden rule: **never let a secret reach the store**, and keep the adversarial redaction corpus green.
