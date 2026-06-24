@@ -13,5 +13,6 @@
     "replay",
     "audit"
   ],
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "commands": "./commands"
 }

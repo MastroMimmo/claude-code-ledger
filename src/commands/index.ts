@@ -8,6 +8,7 @@ import { registerImport } from './import';
 import { registerReplay } from './replay';
 import { registerRedactTest } from './redact-test';
 import { registerHook } from './hook';
+import { registerStatusline } from './statusline';
 
 export function registerCommands(program: Command): void {
   registerInit(program);
@@ -19,4 +20,5 @@ export function registerCommands(program: Command): void {
   registerReplay(program);
   registerRedactTest(program);
   registerHook(program);
+  registerStatusline(program);
 }

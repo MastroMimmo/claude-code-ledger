@@ -98,6 +98,32 @@ This repo ships a prebuilt, single-file CLI (`dist/cli.js`), so the plugin works
 
 Then run `ledger init` in any repo where you want capture (it also adds `.ledger/` to your `.gitignore` and prints the next steps). Hooks call `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook <event>`; the bundled file means there is nothing to compile first.
 
+### From the chat (slash commands)
+
+Once the plugin is installed you can drive Ledger without leaving Claude Code:
+
+| Slash command | Does |
+|---|---|
+| `/claude-code-ledger:status` | What has been captured in this repo |
+| `/claude-code-ledger:show` | Summarize the latest session's events |
+| `/claude-code-ledger:pack` | Generate a context pack (add `--title "..."`) |
+| `/claude-code-ledger:replay` | Show the replay plan (dry run) |
+
+### Status line (optional)
+
+Show a live capture indicator at the bottom of Claude Code. Add this to your `~/.claude/settings.json` (or a project `.claude/settings.json`):
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node \"/absolute/path/to/claude-code-ledger/dist/cli.js\" statusline"
+  }
+}
+```
+
+It prints e.g. `⟐ Ledger 12e · 3 redacted` for the current session, or `◌ Ledger: ledger init` when a repo has no store yet. (Status lines are a user setting, so a plugin cannot turn one on for you.)
+
 ## Commands
 
 | Command | What it does |

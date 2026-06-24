@@ -11,6 +11,7 @@
     "dist",
     ".claude-plugin",
     "hooks",
+    "commands",
     "README.md",
     "LICENSE"
   ],

@@ -26,8 +26,28 @@ describe('CLI wiring', () => {
         'replay',
         'redact-test',
         'hook',
+        'statusline',
       ]),
     );
+  });
+});
+
+describe('plugin slash commands', () => {
+  const dir = path.join(ROOT, 'commands');
+
+  it('ships the expected command files', () => {
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
+    expect(files).toEqual(['pack.md', 'replay.md', 'show.md', 'status.md']);
+  });
+
+  it('each command has frontmatter and invokes the bundled CLI', () => {
+    for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.md'))) {
+      const md = fs.readFileSync(path.join(dir, f), 'utf8');
+      expect(md.startsWith('---')).toBe(true);
+      expect(md).toContain('description:');
+      expect(md).toContain('allowed-tools: Bash(node *)');
+      expect(md).toContain('${CLAUDE_PLUGIN_ROOT}/dist/cli.js');
+    }
   });
 });
 
@@ -39,6 +59,7 @@ describe('Claude Code plugin packaging', () => {
     expect(plugin.version).toBe(pkg.version);
     expect(plugin.description).toBeTruthy();
     expect(plugin.hooks).toBe('./hooks/hooks.json');
+    expect(plugin.commands).toBe('./commands');
   });
 
   it('hooks.json registers the capture events pointing at the CLI', () => {

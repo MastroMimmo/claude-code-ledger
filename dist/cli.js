@@ -4186,6 +4186,59 @@ function registerHook(program2) {
   });
 }
 
+// src/commands/statusline.ts
+function readStdin3() {
+  return new Promise((resolve2) => {
+    if (process.stdin.isTTY) {
+      resolve2("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => data += chunk);
+    process.stdin.on("end", () => resolve2(data));
+  });
+}
+function registerStatusline(program2) {
+  program2.command("statusline").description("Internal: print a one-line summary for the Claude Code status line (reads JSON from stdin)").action(async () => {
+    let cwd = process.cwd();
+    let sessionId;
+    try {
+      const raw = await readStdin3();
+      if (raw.trim()) {
+        const j = JSON.parse(raw);
+        cwd = j.workspace?.current_dir ?? j.cwd ?? cwd;
+        sessionId = j.session_id;
+      }
+    } catch {
+    }
+    try {
+      if (!findLedgerDir(cwd)) {
+        console.log("\u25CC Ledger: ledger init");
+        return;
+      }
+      const store = openStore(cwd);
+      try {
+        const session = sessionId ? store.getSession(sessionId) : store.latestSession();
+        if (session) {
+          const events = store.getEvents(session.id);
+          let redacted = 0;
+          for (const e of events) {
+            if (e.redactions) for (const n of Object.values(e.redactions)) redacted += n;
+          }
+          console.log(`\u27D0 Ledger ${events.length}e \xB7 ${redacted} redacted`);
+        } else {
+          console.log(`\u27D0 Ledger ${store.stats().events}e`);
+        }
+      } finally {
+        store.close();
+      }
+    } catch {
+      console.log("\u27D0 Ledger");
+    }
+  });
+}
+
 // src/commands/index.ts
 function registerCommands(program2) {
   registerInit(program2);
@@ -4197,6 +4250,7 @@ function registerCommands(program2) {
   registerReplay(program2);
   registerRedactTest(program2);
   registerHook(program2);
+  registerStatusline(program2);
 }
 
 // src/cli.ts
