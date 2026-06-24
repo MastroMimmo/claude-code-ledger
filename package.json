@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Local-first companion for Claude Code: capture sessions, redact secrets/PII before persistence, generate transferable context packs, and replay deterministically.",
   "license": "Apache-2.0",
+  "author": "Alan Ferraioli",
+  "homepage": "https://github.com/MastroMimmo/claude-code-ledger#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MastroMimmo/claude-code-ledger.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MastroMimmo/claude-code-ledger/issues"
+  },
   "type": "commonjs",
   "bin": {
     "ledger": "dist/cli.js"
