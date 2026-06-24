@@ -1,7 +1,11 @@
 node_modules/
-dist/
 coverage/
 *.log
+
+# Build output: ship only the bundled single-file CLI so the plugin works
+# without an install/build step. Ignore everything else under dist/.
+dist/*
+!dist/cli.js
 
 # Ledger local capture data (per-repo store)
 .ledger/

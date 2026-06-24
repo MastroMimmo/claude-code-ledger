@@ -18,7 +18,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "esbuild src/cli.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/cli.js",
+    "prepare": "npm run build",
     "dev": "tsx src/cli.ts",
     "ledger": "tsx src/cli.ts",
     "test": "vitest run",
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "esbuild": "^0.28.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

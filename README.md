@@ -64,7 +64,7 @@ Because redaction *is* the product, it carries the heaviest test coverage - an a
 ```bash
 git clone <this-repo> claude-code-ledger
 cd claude-code-ledger
-npm install && npm run build
+npm install             # also builds the single-file CLI (via the prepare script)
 npm link                # exposes the `ledger` CLI on your PATH (optional)
 ```
 
@@ -87,16 +87,16 @@ login password=«REDACTED:secret_assignment» key «REDACTED:aws_access_key_id»
 3 redaction(s): aws_access_key_id=1, secret_assignment=1, email=1
 ```
 
-### Use it as a plugin (automatic capture)
+### Use it as a plugin (automatic capture, no build)
 
-This repo is itself a plugin. After `npm run build`:
+This repo ships a prebuilt, single-file CLI (`dist/cli.js`), so the plugin works out of the box:
 
 ```
 /plugin marketplace add /absolute/path/to/claude-code-ledger
 /plugin install claude-code-ledger
 ```
 
-Then run `ledger init` in any repo where you want capture. Hooks call `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook <event>`, which is why the build step is required.
+Then run `ledger init` in any repo where you want capture (it also adds `.ledger/` to your `.gitignore` and prints the next steps). Hooks call `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook <event>`; the bundled file means there is nothing to compile first.
 
 ## Commands
 
