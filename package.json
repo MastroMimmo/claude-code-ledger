@@ -1,0 +1,48 @@
+{
+  "name": "claude-code-ledger",
+  "version": "0.1.0",
+  "description": "Local-first companion for Claude Code: capture sessions, redact secrets/PII before persistence, generate transferable context packs, and replay deterministically.",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "bin": {
+    "ledger": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    ".claude-plugin",
+    "hooks",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "ledger": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "e2e": "bash scripts/e2e.sh",
+    "verify": "npm run typecheck && npm run build && npm test && npm run e2e",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "claude-code",
+    "ai-coding",
+    "observability",
+    "redaction",
+    "context",
+    "replay"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Ledger local capture data (per-repo store)
+.ledger/
+
+# Local tooling / editor state
+.claude/
+.fablize/
+
+# Temporary image-generation metadata
+assets/_*.json
+
+# Windows/WSL artifacts
+*:Zone.Identifier
