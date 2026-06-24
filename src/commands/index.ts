@@ -9,9 +9,11 @@ import { registerReplay } from './replay';
 import { registerRedactTest } from './redact-test';
 import { registerHook } from './hook';
 import { registerStatusline } from './statusline';
+import { registerDoctor } from './doctor';
 
 export function registerCommands(program: Command): void {
   registerInit(program);
+  registerDoctor(program);
   registerStatus(program);
   registerList(program);
   registerShow(program);

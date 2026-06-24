@@ -968,8 +968,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path7 = require("node:path");
-    var fs7 = require("node:fs");
+    var path8 = require("node:path");
+    var fs8 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1901,11 +1901,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path7.resolve(baseDir, baseName);
-          if (fs7.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path7.extname(baseName))) return void 0;
+          const localBin = path8.resolve(baseDir, baseName);
+          if (fs8.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path8.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs7.existsSync(`${localBin}${ext}`)
+            (ext) => fs8.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1917,21 +1917,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs7.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs8.realpathSync(this._scriptPath);
           } catch (err) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path7.resolve(
-            path7.dirname(resolvedScriptPath),
+          executableDir = path8.resolve(
+            path8.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path7.basename(
+            const legacyName = path8.basename(
               this._scriptPath,
-              path7.extname(this._scriptPath)
+              path8.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1942,7 +1942,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path7.extname(executableFile));
+        launchWithNode = sourceExt.includes(path8.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2782,7 +2782,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path7.basename(filename, path7.extname(filename));
+        this._name = path8.basename(filename, path8.extname(filename));
         return this;
       }
       /**
@@ -2796,9 +2796,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path8) {
-        if (path8 === void 0) return this._executableDir;
-        this._executableDir = path8;
+      executableDir(path9) {
+        if (path9 === void 0) return this._executableDir;
+        this._executableDir = path9;
         return this;
       }
       /**
@@ -4239,9 +4239,151 @@ function registerStatusline(program2) {
   });
 }
 
+// src/commands/doctor.ts
+var import_node_child_process3 = require("node:child_process");
+var fs7 = __toESM(require("node:fs"));
+var os2 = __toESM(require("node:os"));
+var path7 = __toESM(require("node:path"));
+function ledgerIgnored(cwd) {
+  const gi = path7.join(cwd, ".gitignore");
+  if (!fs7.existsSync(gi)) return false;
+  return fs7.readFileSync(gi, "utf8").split(/\r?\n/).some((l) => l.trim() === ".ledger" || l.trim() === ".ledger/");
+}
+function findPluginRoot() {
+  let dir = __dirname;
+  for (let i = 0; i < 6; i++) {
+    if (fs7.existsSync(path7.join(dir, ".claude-plugin", "plugin.json"))) return dir;
+    const parent = path7.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+function runChecks(cwd) {
+  const checks = [];
+  const major = Number(process.versions.node.split(".")[0]);
+  checks.push(
+    major >= 22 ? { name: "Node.js", status: "ok", detail: `v${process.versions.node}` } : {
+      name: "Node.js",
+      status: "fail",
+      detail: `v${process.versions.node} (need >= 22)`,
+      fix: "Upgrade Node.js to v22 or newer"
+    }
+  );
+  try {
+    const tmp = fs7.mkdtempSync(path7.join(os2.tmpdir(), "ledger-doctor-"));
+    const s = new Store(path7.join(tmp, "probe.db"));
+    s.upsertSession({ id: "probe", cwd: tmp, startedAt: (/* @__PURE__ */ new Date()).toISOString() });
+    s.close();
+    fs7.rmSync(tmp, { recursive: true, force: true });
+    checks.push({ name: "SQLite", status: "ok", detail: "node:sqlite is working" });
+  } catch {
+    checks.push({
+      name: "SQLite",
+      status: "fail",
+      detail: "node:sqlite not available",
+      fix: "Ensure you are on Node.js v22+"
+    });
+  }
+  const r = redact("AKIAIOSFODNN7EXAMPLE");
+  checks.push(
+    !r.text.includes("AKIA") && (r.redactions.aws_access_key_id ?? 0) >= 1 ? { name: "Redaction engine", status: "ok", detail: "secrets are scrubbed" } : {
+      name: "Redaction engine",
+      status: "fail",
+      detail: "self-test did not redact a known secret",
+      fix: "Reinstall / rebuild the CLI"
+    }
+  );
+  const dir = findLedgerDir(cwd);
+  if (dir) {
+    checks.push({ name: "Store", status: "ok", detail: `initialized at ${dir}` });
+    try {
+      const store = openStore(cwd);
+      const st = store.stats();
+      store.close();
+      checks.push({
+        name: "Store data",
+        status: "ok",
+        detail: `${st.sessions} session(s), ${st.events} event(s)`
+      });
+    } catch {
+      checks.push({
+        name: "Store data",
+        status: "fail",
+        detail: "store exists but could not be opened",
+        fix: "Check permissions on .ledger/, or re-run ledger init -f"
+      });
+    }
+  } else {
+    checks.push({
+      name: "Store",
+      status: "warn",
+      detail: "no .ledger/ store in this repo",
+      fix: "Run: ledger init"
+    });
+  }
+  if (fs7.existsSync(path7.join(cwd, ".git"))) {
+    checks.push(
+      ledgerIgnored(cwd) ? { name: ".gitignore", status: "ok", detail: ".ledger/ is ignored" } : {
+        name: ".gitignore",
+        status: "warn",
+        detail: ".ledger/ is not git-ignored",
+        fix: "Run: ledger init (it adds .ledger/ to .gitignore)"
+      }
+    );
+  }
+  try {
+    (0, import_node_child_process3.execFileSync)("git", ["--version"], { stdio: "ignore" });
+    checks.push({ name: "git", status: "ok", detail: "available" });
+  } catch {
+    checks.push({
+      name: "git",
+      status: "warn",
+      detail: "git not found",
+      fix: "Install git to capture branch/commit in fingerprints"
+    });
+  }
+  const root = findPluginRoot();
+  if (root) {
+    const hasBundle = fs7.existsSync(path7.join(root, "dist", "cli.js"));
+    const hasHooks = fs7.existsSync(path7.join(root, "hooks", "hooks.json"));
+    checks.push(
+      hasBundle && hasHooks ? { name: "Plugin", status: "ok", detail: "bundle + hooks present" } : {
+        name: "Plugin",
+        status: "warn",
+        detail: `missing ${!hasBundle ? "dist/cli.js" : "hooks/hooks.json"}`,
+        fix: "Run: npm run build"
+      }
+    );
+  }
+  return checks;
+}
+function registerDoctor(program2) {
+  program2.command("doctor").description("Diagnose your Ledger setup and report what to fix").action(() => {
+    const checks = runChecks(process.cwd());
+    const icon = { ok: "\u2713", warn: "\u26A0", fail: "\u2717" };
+    for (const c of checks) {
+      console.log(`${icon[c.status]} ${c.name}: ${c.detail}`);
+      if (c.status !== "ok" && c.fix) console.log(`    fix: ${c.fix}`);
+    }
+    const fails = checks.filter((c) => c.status === "fail").length;
+    const warns = checks.filter((c) => c.status === "warn").length;
+    console.log("");
+    if (fails > 0) {
+      console.log(`${fails} problem(s) to fix${warns > 0 ? `, ${warns} warning(s)` : ""}.`);
+      process.exitCode = 1;
+    } else if (warns > 0) {
+      console.log(`All good, with ${warns} warning(s).`);
+    } else {
+      console.log("All good. Ledger is ready.");
+    }
+  });
+}
+
 // src/commands/index.ts
 function registerCommands(program2) {
   registerInit(program2);
+  registerDoctor(program2);
   registerStatus(program2);
   registerList(program2);
   registerShow(program2);

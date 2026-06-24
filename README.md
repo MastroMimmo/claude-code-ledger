@@ -104,6 +104,7 @@ Once the plugin is installed you can drive Ledger without leaving Claude Code:
 
 | Slash command | Does |
 |---|---|
+| `/ledger:doctor` | Diagnose the setup and report what to fix |
 | `/ledger:status` | What has been captured in this repo |
 | `/ledger:show` | Summarize the latest session's events |
 | `/ledger:pack` | Generate a context pack (add `--title "..."`) |
@@ -129,6 +130,7 @@ It prints e.g. `⟐ Ledger 12e · 3 redacted` for the current session, or `◌ L
 | Command | What it does |
 |---|---|
 | `ledger init [-f]` | Create a `.ledger/` store in the current repo |
+| `ledger doctor` | Diagnose the setup and report what to fix |
 | `ledger status [--json]` | Sessions, events, last activity |
 | `ledger list [-n N] [--json]` | List captured sessions |
 | `ledger show [session] [--json]` | Show a session's events (defaults to latest) |

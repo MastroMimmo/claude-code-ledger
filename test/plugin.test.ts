@@ -18,6 +18,7 @@ describe('CLI wiring', () => {
     expect(names).toEqual(
       expect.arrayContaining([
         'init',
+        'doctor',
         'status',
         'list',
         'show',
@@ -37,7 +38,7 @@ describe('plugin slash commands', () => {
 
   it('ships the expected command files', () => {
     const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
-    expect(files).toEqual(['pack.md', 'replay.md', 'show.md', 'status.md']);
+    expect(files).toEqual(['doctor.md', 'pack.md', 'replay.md', 'show.md', 'status.md']);
   });
 
   it('each command has frontmatter and invokes the bundled CLI', () => {
